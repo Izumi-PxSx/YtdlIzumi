@@ -6,7 +6,8 @@ import fs from "fs";
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-const ytDlpPath = path.resolve("./yt-dlp");
+// ✅ pakai yt-dlp dari PATH
+const ytDlpPath = "yt-dlp";  
 const cookiesFile = path.resolve("./cookies.txt");
 const tmpDir = path.resolve("./tmp");
 
@@ -18,7 +19,6 @@ if (!fs.existsSync(tmpDir)) {
 // ✅ Fungsi download YouTube
 async function ytdl(url, quality = "720") {
   return new Promise((resolve, reject) => {
-    // filename unik: title + id biar ga tabrakan
     const outputFile = path.join(tmpDir, "%(title)s-%(id)s.%(ext)s");
 
     const qualityMap = {
@@ -61,7 +61,6 @@ async function ytdl(url, quality = "720") {
     yt.on("close", (code) => {
       if (code === 0) {
         try {
-          // ambil metadata JSON
           const jsonFiles = fs.readdirSync(tmpDir).filter(f => f.endsWith(".info.json"));
           let metaClean = {};
           if (jsonFiles.length > 0) {
@@ -145,9 +144,6 @@ app.get("/download", (req, res) => {
 
   res.download(filePath);
 });
-
-// ✅ Expose folder tmp untuk akses langsung
-app.use("/tmp", express.static(tmpDir));
 
 // ✅ Auto-clear file lebih dari 2 jam
 setInterval(() => {
