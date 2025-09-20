@@ -9,6 +9,9 @@ const PORT = process.env.PORT || 3000;
 const ytDlpPath = path.resolve("./yt-dlp");
 const cookiesFile = "/home/container/cookies.txt";
 
+// Domain HuggingFace Space kamu
+const BASE_URL = "https://Izukumii-ytdl.hf.space";
+
 // Fungsi downloader
 async function ytdl(url, quality = "720") {
   return new Promise((resolve, reject) => {
@@ -78,7 +81,11 @@ async function ytdl(url, quality = "720") {
           if (mediaFiles.length === 0) return reject("❌ File tidak ditemukan");
           const mediaPath = path.join("./tmp/", mediaFiles[0]);
 
-          resolve({ file: mediaPath, metadata: metaClean });
+          // Link public untuk download
+          const fileName = path.basename(mediaPath);
+          const downloadUrl = `${BASE_URL}/download?file=${encodeURIComponent(fileName)}`;
+
+          resolve({ file: mediaPath, download: downloadUrl, metadata: metaClean });
         } catch (err) {
           reject("❌ Gagal parsing metadata: " + err.message);
         }
@@ -99,7 +106,7 @@ app.get("/ytmp3", async (req, res) => {
     res.json({
       status: "success",
       type: "mp3",
-      file: result.file,
+      download: result.download,
       metadata: result.metadata
     });
   } catch (err) {
@@ -117,12 +124,27 @@ app.get("/ytmp4", async (req, res) => {
     res.json({
       status: "success",
       type: "mp4",
-      file: result.file,
+      download: result.download,
       metadata: result.metadata
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.toString() });
   }
+});
+
+// Endpoint: download file langsung
+app.get("/download", (req, res) => {
+  const { file } = req.query;
+  if (!file) return res.status(400).json({ error: "Parameter file wajib diisi" });
+
+  const filePath = path.join("./tmp/", file);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: "File tidak ditemukan" });
+
+  res.download(filePath, file, err => {
+    if (err) {
+      res.status(500).json({ error: "Gagal download file" });
+    }
+  });
 });
 
 app.listen(PORT, () => console.log(`🚀 Server berjalan di http://localhost:${PORT}`));
