@@ -10,15 +10,16 @@ const ytDlpPath = path.resolve("./yt-dlp");
 const cookiesFile = path.resolve("./cookies.txt");
 const tmpDir = path.resolve("./tmp");
 
-// Pastikan folder tmp ada
+// ✅ Pastikan folder tmp ada
 if (!fs.existsSync(tmpDir)) {
-  fs.mkdirSync(tmpDir);
+  fs.mkdirSync(tmpDir, { recursive: true });
 }
 
-// Fungsi download
+// ✅ Fungsi download YouTube
 async function ytdl(url, quality = "720") {
   return new Promise((resolve, reject) => {
-    const outputFile = path.join(tmpDir, "%(title)s.%(ext)s");
+    // filename unik: title + id biar ga tabrakan
+    const outputFile = path.join(tmpDir, "%(title)s-%(id)s.%(ext)s");
 
     const qualityMap = {
       "360": "bestvideo[height<=360]+bestaudio/best[height<=360]",
@@ -60,6 +61,7 @@ async function ytdl(url, quality = "720") {
     yt.on("close", (code) => {
       if (code === 0) {
         try {
+          // ambil metadata JSON
           const jsonFiles = fs.readdirSync(tmpDir).filter(f => f.endsWith(".info.json"));
           let metaClean = {};
           if (jsonFiles.length > 0) {
@@ -95,7 +97,7 @@ async function ytdl(url, quality = "720") {
   });
 }
 
-// Endpoint ytmp3
+// ✅ Endpoint ytmp3
 app.get("/ytmp3", async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: "Parameter url wajib diisi" });
@@ -114,7 +116,7 @@ app.get("/ytmp3", async (req, res) => {
   }
 });
 
-// Endpoint ytmp4
+// ✅ Endpoint ytmp4
 app.get("/ytmp4", async (req, res) => {
   const { url, format } = req.query;
   if (!url) return res.status(400).json({ error: "Parameter url wajib diisi" });
@@ -133,7 +135,7 @@ app.get("/ytmp4", async (req, res) => {
   }
 });
 
-// Endpoint serve file download
+// ✅ Endpoint serve file download
 app.get("/download", (req, res) => {
   const { file } = req.query;
   if (!file) return res.status(400).json({ error: "Parameter file wajib diisi" });
@@ -144,17 +146,25 @@ app.get("/download", (req, res) => {
   res.download(filePath);
 });
 
-// Auto-clear setiap 2 jam
+// ✅ Expose folder tmp untuk akses langsung
+app.use("/tmp", express.static(tmpDir));
+
+// ✅ Auto-clear file lebih dari 2 jam
 setInterval(() => {
   try {
+    const now = Date.now();
     const files = fs.readdirSync(tmpDir);
     for (const file of files) {
-      fs.unlinkSync(path.join(tmpDir, file));
+      const filePath = path.join(tmpDir, file);
+      const stat = fs.statSync(filePath);
+      if (now - stat.mtimeMs > 2 * 60 * 60 * 1000) {
+        fs.unlinkSync(filePath);
+        console.log("🗑️ File dihapus:", file);
+      }
     }
-    console.log("🧹 Tmp folder dibersihkan otomatis");
   } catch (e) {
     console.error("❌ Gagal clear tmp:", e.message);
   }
-}, 2 * 60 * 60 * 1000); // 2 jam
+}, 60 * 60 * 1000); // cek tiap 1 jam
 
 app.listen(PORT, () => console.log(`🚀 Server berjalan di http://localhost:${PORT}`));
