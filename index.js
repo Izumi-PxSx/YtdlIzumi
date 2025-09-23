@@ -6,17 +6,17 @@ import fs from "fs";
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-// ✅ pakai yt-dlp dari PATH
-const ytDlpPath = "yt-dlp";  
+// ✅ pakai yt-dlp dari PATH (pip3 install yt-dlp)
+const ytDlpPath = "yt-dlp";
 const cookiesFile = path.resolve("./cookies.txt");
 const tmpDir = path.resolve("./tmp");
 
-// ✅ Pastikan folder tmp ada
+// Pastikan folder tmp ada
 if (!fs.existsSync(tmpDir)) {
   fs.mkdirSync(tmpDir, { recursive: true });
 }
 
-// ✅ Fungsi download YouTube
+// Fungsi download
 async function ytdl(url, quality = "720") {
   return new Promise((resolve, reject) => {
     const outputFile = path.join(tmpDir, "%(title)s-%(id)s.%(ext)s");
@@ -96,7 +96,7 @@ async function ytdl(url, quality = "720") {
   });
 }
 
-// ✅ Endpoint ytmp3
+// Endpoint ytmp3
 app.get("/ytmp3", async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: "Parameter url wajib diisi" });
@@ -108,14 +108,14 @@ app.get("/ytmp3", async (req, res) => {
       type: "mp3",
       file: result.file,
       metadata: result.metadata,
-      download: `https://izukumii-ytdl.hf.space/download?file=${encodeURIComponent(path.basename(result.file))}`,
+      download: `/download?file=${encodeURIComponent(path.basename(result.file))}`,
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.toString() });
   }
 });
 
-// ✅ Endpoint ytmp4
+// Endpoint ytmp4
 app.get("/ytmp4", async (req, res) => {
   const { url, format } = req.query;
   if (!url) return res.status(400).json({ error: "Parameter url wajib diisi" });
@@ -127,14 +127,14 @@ app.get("/ytmp4", async (req, res) => {
       type: "mp4",
       file: result.file,
       metadata: result.metadata,
-      download: `https://izukumii-ytdl.hf.space/download?file=${encodeURIComponent(path.basename(result.file))}`,
+      download: `/download?file=${encodeURIComponent(path.basename(result.file))}`,
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.toString() });
   }
 });
 
-// ✅ Endpoint serve file download
+// Serve file download
 app.get("/download", (req, res) => {
   const { file } = req.query;
   if (!file) return res.status(400).json({ error: "Parameter file wajib diisi" });
@@ -145,7 +145,7 @@ app.get("/download", (req, res) => {
   res.download(filePath);
 });
 
-// ✅ Auto-clear file lebih dari 2 jam
+// Auto-clear tmp tiap 2 jam
 setInterval(() => {
   try {
     const now = Date.now();
@@ -161,6 +161,6 @@ setInterval(() => {
   } catch (e) {
     console.error("❌ Gagal clear tmp:", e.message);
   }
-}, 60 * 60 * 1000); // cek tiap 1 jam
+}, 60 * 60 * 1000);
 
 app.listen(PORT, () => console.log(`🚀 Server berjalan di http://localhost:${PORT}`));
